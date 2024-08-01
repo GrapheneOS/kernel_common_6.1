@@ -614,6 +614,7 @@ out:
 	return ret;
 }
 
+#if !IS_ENABLED(CONFIG_MICRODROID)
 static int resolve_context_type(struct selinux_load_state *state, const char *name, u32 *out_type)
 {
 	struct type_datum *typdatum = symtab_search(&state->policy->policydb.p_types, name);
@@ -624,7 +625,11 @@ static int resolve_context_type(struct selinux_load_state *state, const char *na
 	*out_type = typdatum->value;
 	return 0;
 }
+#else
+#define resolve_context_type NULL
+#endif
 
+#if !IS_ENABLED(CONFIG_MICRODROID)
 static int resolve_context_types(struct selinux_load_state *lstate, struct context_types *types) {
 	int rc;
 
@@ -643,6 +648,9 @@ static int resolve_context_types(struct selinux_load_state *lstate, struct conte
 
 	return 0;
 }
+#else
+#define resolve_context_types NULL
+#endif
 
 static ssize_t sel_write_load(struct file *file, const char __user *buf,
 			      size_t count, loff_t *ppos)
@@ -688,11 +696,13 @@ static ssize_t sel_write_load(struct file *file, const char __user *buf,
 		goto out;
 	}
 
+#if !IS_ENABLED(CONFIG_MICRODROID)
 	length = resolve_context_types(&load_state, &fsi->state->types);
 	if (length) {
 		selinux_policy_cancel(fsi->state, &load_state);
 		goto out;
 	}
+#endif
 
 	selinux_policy_commit(fsi->state, &load_state);
 
