@@ -2293,6 +2293,7 @@
   tcpm_sourcing_vbus
   tcpm_tcpc_reset
   tcpm_unregister_port
+  tcpm_update_sink_capabilities
   tcpm_vbus_change
   teo_cpu_get_util_threshold
   teo_cpu_set_util_threshold
@@ -2366,6 +2367,7 @@
   __traceiter_android_rvh_update_misfit_status
   __traceiter_android_rvh_update_rt_rq_load_avg
   __traceiter_android_rvh_usb_dev_suspend
+  __traceiter_android_rvh_util_est_update
   __traceiter_android_rvh_util_fits_cpu
   __traceiter_android_vh_arch_set_freq_scale
   __traceiter_android_vh_audio_usb_offload_connect
@@ -2490,6 +2492,7 @@
   __tracepoint_android_rvh_update_misfit_status
   __tracepoint_android_rvh_update_rt_rq_load_avg
   __tracepoint_android_rvh_usb_dev_suspend
+  __tracepoint_android_rvh_util_est_update
   __tracepoint_android_rvh_util_fits_cpu
   __tracepoint_android_vh_arch_set_freq_scale
   __tracepoint_android_vh_audio_usb_offload_connect
