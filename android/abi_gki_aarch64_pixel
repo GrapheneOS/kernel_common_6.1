@@ -2305,6 +2305,7 @@
   tcpm_sourcing_vbus
   tcpm_tcpc_reset
   tcpm_unregister_port
+  tcpm_update_sink_capabilities
   tcpm_vbus_change
   teo_cpu_get_util_threshold
   teo_cpu_set_util_threshold
