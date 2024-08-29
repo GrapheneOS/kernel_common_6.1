@@ -1377,7 +1377,6 @@
   stpcpy
   strcasecmp
   strim
-  system_entering_hibernation
   system_state
   trace_seq_printf
   trace_seq_putc
