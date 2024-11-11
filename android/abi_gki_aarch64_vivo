@@ -4493,10 +4493,6 @@
   timer_reduce
   timer_unstable_counter_workaround
   timespec64_to_jiffies
-  tipc_dump_done
-  tipc_dump_start
-  tipc_nl_sk_walk
-  tipc_sk_fill_sock_diag
   topology_clear_scale_freq_source
   topology_update_done
   topology_update_thermal_pressure
