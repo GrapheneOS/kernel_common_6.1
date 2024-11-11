@@ -65,8 +65,6 @@ _COMMON_GKI_MODULES_LIST = [
     "net/mac802154/mac802154.ko",
     "net/nfc/nfc.ko",
     "net/rfkill/rfkill.ko",
-    "net/tipc/diag.ko",
-    "net/tipc/tipc.ko",
 ]
 
 # Deprecated - Use `get_gki_modules_list` function instead.
