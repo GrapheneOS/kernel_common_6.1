@@ -114,33 +114,6 @@ static int dwc3_get_dr_mode(struct dwc3 *dwc)
 	return 0;
 }
 
-void dwc3_enable_susphy(struct dwc3 *dwc, bool enable)
-{
-	struct dwc3_vendor *vdwc = container_of(dwc, struct dwc3_vendor, dwc);
-	u32 reg;
-	int i;
-
-	for (i = 0; i < vdwc->num_usb3_ports; i++) {
-		reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(i));
-		if (enable && !dwc->dis_u3_susphy_quirk)
-			reg |= DWC3_GUSB3PIPECTL_SUSPHY;
-		else
-			reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
-
-		dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(i), reg);
-	}
-
-	for (i = 0; i < vdwc->num_usb2_ports; i++) {
-		reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(i));
-		if (enable && !dwc->dis_u2_susphy_quirk)
-			reg |= DWC3_GUSB2PHYCFG_SUSPHY;
-		else
-			reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
-
-		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(i), reg);
-	}
-}
-
 void dwc3_set_prtcap(struct dwc3 *dwc, u32 mode)
 {
 	u32 reg;
@@ -733,7 +706,10 @@ static int dwc3_core_ulpi_init(struct dwc3 *dwc)
 
 static int dwc3_ss_phy_setup(struct dwc3 *dwc, int index)
 {
+	unsigned int hw_mode;
 	u32 reg;
+
+	hw_mode = DWC3_GHWPARAMS0_MODE(dwc->hwparams.hwparams0);
 
 	reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(index));
 
@@ -744,16 +720,21 @@ static int dwc3_ss_phy_setup(struct dwc3 *dwc, int index)
 	reg &= ~DWC3_GUSB3PIPECTL_UX_EXIT_PX;
 
 	/*
-	 * Above DWC_usb3.0 1.94a, it is recommended to set
-	 * DWC3_GUSB3PIPECTL_SUSPHY to '0' during coreConsultant configuration.
-	 * So default value will be '0' when the core is reset. Application
-	 * needs to set it to '1' after the core initialization is completed.
-	 *
-	 * Similarly for DRD controllers, GUSB3PIPECTL.SUSPENDENABLE must be
-	 * cleared after power-on reset, and it can be set after core
-	 * initialization.
+	 * Above 1.94a, it is recommended to set DWC3_GUSB3PIPECTL_SUSPHY
+	 * to '0' during coreConsultant configuration. So default value
+	 * will be '0' when the core is reset. Application needs to set it
+	 * to '1' after the core initialization is completed.
 	 */
-	reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
+	if (!DWC3_VER_IS_WITHIN(DWC3, ANY, 194A))
+		reg |= DWC3_GUSB3PIPECTL_SUSPHY;
+
+	/*
+	 * For DRD controllers, GUSB3PIPECTL.SUSPENDENABLE must be cleared after
+	 * power-on reset, and it can be set after core initialization, which is
+	 * after device soft-reset during initialization.
+	 */
+	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD)
+		reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
 
 	if (dwc->u2ss_inp3_quirk)
 		reg |= DWC3_GUSB3PIPECTL_U2SSINP3OK;
@@ -778,6 +759,9 @@ static int dwc3_ss_phy_setup(struct dwc3 *dwc, int index)
 
 	if (dwc->tx_de_emphasis_quirk)
 		reg |= DWC3_GUSB3PIPECTL_TX_DEEPH(dwc->tx_de_emphasis);
+
+	if (dwc->dis_u3_susphy_quirk)
+		reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
 
 	if (dwc->dis_del_phy_power_chg_quirk)
 		reg &= ~DWC3_GUSB3PIPECTL_DEPOCHANGE;
@@ -835,15 +819,24 @@ static int dwc3_hs_phy_setup(struct dwc3 *dwc, int index)
 	}
 
 	/*
-	 * Above DWC_usb3.0 1.94a, it is recommended to set
-	 * DWC3_GUSB2PHYCFG_SUSPHY to '0' during coreConsultant configuration.
-	 * So default value will be '0' when the core is reset. Application
-	 * needs to set it to '1' after the core initialization is completed.
-	 *
-	 * Similarly for DRD controllers, GUSB2PHYCFG.SUSPHY must be cleared
-	 * after power-on reset, and it can be set after core initialization.
+	 * Above 1.94a, it is recommended to set DWC3_GUSB2PHYCFG_SUSPHY to
+	 * '0' during coreConsultant configuration. So default value will
+	 * be '0' when the core is reset. Application needs to set it to
+	 * '1' after the core initialization is completed.
 	 */
-	reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
+	if (!DWC3_VER_IS_WITHIN(DWC3, ANY, 194A))
+		reg |= DWC3_GUSB2PHYCFG_SUSPHY;
+
+	/*
+	 * For DRD controllers, GUSB2PHYCFG.SUSPHY must be cleared after
+	 * power-on reset, and it can be set after core initialization, which is
+	 * after device soft-reset during initialization.
+	 */
+	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD)
+		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
+
+	if (dwc->dis_u2_susphy_quirk)
+		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
 
 	if (dwc->dis_enblslpm_quirk)
 		reg &= ~DWC3_GUSB2PHYCFG_ENBLSLPM;
@@ -1240,6 +1233,21 @@ static int dwc3_core_init(struct dwc3 *dwc)
 	ret = dwc3_core_soft_reset(dwc);
 	if (ret)
 		goto exit_usb3_phy;
+
+	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD &&
+	    !DWC3_VER_IS_WITHIN(DWC3, ANY, 194A)) {
+		if (!dwc->dis_u3_susphy_quirk) {
+			reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(0));
+			reg |= DWC3_GUSB3PIPECTL_SUSPHY;
+			dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(0), reg);
+		}
+
+		if (!dwc->dis_u2_susphy_quirk) {
+			reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+			reg |= DWC3_GUSB2PHYCFG_SUSPHY;
+			dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
+		}
+	}
 
 	dwc3_core_setup_global_control(dwc);
 	dwc3_core_num_eps(dwc);
